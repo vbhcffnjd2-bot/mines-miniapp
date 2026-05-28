@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UZBONUS — Mines</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+:root{
+  --bg:#0b0f1e; --card:#121828; --card2:#161e30; --border:#1e2d4a;
+  --blue:#1a7ef7; --blue2:#0d5bbf; --blue-glow:rgba(26,126,247,0.3);
+  --gold:#f7c948; --gold-glow:rgba(247,201,72,0.4);
+  --green:#22c55e; --green-bg:#071a0f; --green-border:#166534;
+  --red:#ef4444; --red-bg:#1a0707; --red-border:#7f1d1d;
+  --text:#e0eaff; --muted:#5a6e99;
+}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  min-height:100vh; padding:0 12px 30px; overflow-x:hidden;
+}
+.header{text-align:center; padding:14px 0 10px}
+.brand{
+  font-size:26px; font-weight:900; letter-spacing:4px;
+  background:linear-gradient(90deg,#1a7ef7,#5eb8ff,#f7c948);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.brand-sub{font-size:9px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:2px}
+
+.counter{
+  background:linear-gradient(135deg,#0d2545,#0a1a35);
+  border:1px solid var(--blue2); border-radius:12px;
+  padding:10px 14px; margin-bottom:12px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.counter-l{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px}
+.counter-r{font-size:20px; font-weight:900; color:var(--gold); text-shadow:0 0 12px var(--gold-glow)}
+.counter.zero .counter-r{color:var(--red)}
+
+.card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom:10px}
+.lbl{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px}
+
+.bomb-row{display:flex; align-items:center; gap:8px}
+.adj{
+  width:42px; height:42px; border-radius:11px;
+  border:1px solid var(--border); background:var(--card2);
+  color:var(--text); font-size:22px; cursor:pointer;
+  transition:.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.adj:active{transform:scale(.85); background:var(--blue2); border-color:var(--blue)}
+.bmid{flex:1; display:flex; align-items:center; gap:8px}
+.bnum{font-size:36px; font-weight:900; color:var(--gold); min-width:44px; line-height:1; text-shadow:0 0 18px var(--gold-glow)}
+.binfo{font-size:11px; color:var(--muted); line-height:1.6}
+.binfo b{color:var(--text)}
+.sl-wrap{margin-top:10px}
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:4px; border-radius:2px; outline:none; cursor:pointer;
+  background:linear-gradient(to right, var(--blue) var(--p,12%), var(--border) var(--p,12%));
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 10px var(--gold-glow); cursor:pointer;
+}
+
+.btn-play{
+  width:100%; height:54px; border-radius:13px; border:none;
+  background:linear-gradient(135deg,#1a7ef7,#5eb8ff);
+  color:#fff; font-size:18px; font-weight:800; letter-spacing:2px;
+  cursor:pointer; transition:.2s;
+  box-shadow:0 4px 20px var(--blue-glow);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin-bottom:8px;
+}
+.btn-play:active{transform:scale(.97); box-shadow:none}
+.btn-play:disabled{opacity:.4; pointer-events:none; background:#2a3a5a}
+
+.status{text-align:center; font-size:12px; color:var(--muted); min-height:18px; margin-bottom:6px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.blink{animation:blink .7s infinite; color:var(--blue)}
+
+.gtop{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+.glbl{font-size:11px; color:var(--muted)}
+.badge{font-size:10px; font-weight:600; background:var(--card2); border:1px solid var(--border); border-radius:7px; padding:3px 9px; color:var(--blue); transition:.3s}
+.badge.done{background:var(--green-bg); border-color:var(--green-border); color:var(--green)}
+.grid{display:grid; grid-template-columns:repeat(5,1fr); gap:5px}
+.cell{
+  aspect-ratio:1; border-radius:9px;
+  background:var(--card2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0; transition:.25s cubic-bezier(.34,1.56,.64,1);
+}
+.cell.safe{
+  background:var(--green-bg); border-color:var(--green-border);
+  font-size:17px; box-shadow:0 0 10px rgba(34,197,94,0.25);
+  animation:pop .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+.cell.bomb{
+  background:var(--red-bg); border-color:var(--red-border);
+  font-size:17px; box-shadow:0 0 8px rgba(239,68,68,0.2);
+  animation:popbomb .3s ease both;
+}
+@keyframes pop{0%{transform:scale(0) rotate(-15deg);opacity:0}70%{transform:scale(1.2) rotate(4deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes popbomb{0%{transform:scale(0);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+
+.result{
+  margin-top:10px;
+  background:linear-gradient(135deg,#0a1830,#0d2040);
+  border:1px solid var(--blue2); border-radius:11px;
+  padding:10px 12px; display:none;
+}
+.result.show{display:block}
+.rrow{display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:5px}
+.rrow:last-child{margin-bottom:0}
+.rk{color:var(--muted)}
+.rv{font-weight:700}
+.rv.gold{color:var(--gold); text-shadow:0 0 10px var(--gold-glow)}
+.rv.green{color:var(--green)}
+
+.tip{margin-top:10px; background:var(--card2); border:1px solid var(--border); border-radius:9px; padding:8px 11px; font-size:11px; color:var(--muted); text-align:center; display:none}
+.tip.show{display:block}
+.tip b{color:var(--gold)}
+
+.no-limit{
+  background:linear-gradient(135deg,#2a0a0a,#3a0a0a);
+  border:1px solid var(--red-border);
+  border-radius:12px; padding:14px; margin-bottom:10px;
+  text-align:center; display:none;
+}
+.no-limit.show{display:block}
+.no-limit-t{font-size:14px; font-weight:700; color:var(--red); margin-bottom:4px}
+.no-limit-s{font-size:11px; color:var(--muted)}
+
+.footer{text-align:center; margin-top:14px; font-size:10px; color:#2a3a5a; letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">UZBONUS</div>
+  <div class="brand-sub">Mines · Signal Generator</div>
+</div>
+
+<div class="counter" id="counter">
+  <div class="counter-l" id="lblRemaining">📊 Осталось сигналов</div>
+  <div class="counter-r" id="remaining">—</div>
+</div>
+
+<div class="no-limit" id="noLimit">
+  <div class="no-limit-t" id="lblLimitT">❌ Лимит исчерпан</div>
+  <div class="no-limit-s" id="lblLimitS">Обновление в 00:00 · Пригласите друзей для бонусов</div>
+</div>
+
+<div class="card">
+  <div class="lbl" id="lblBombs">💣 Количество бомб</div>
+  <div class="bomb-row">
+    <button class="adj" onclick="adj(-1)">−</button>
+    <div class="bmid">
+      <div class="bnum" id="bNum">3</div>
+      <div class="binfo" id="lblBinfo">💣 бомб<br>из <b>25</b> клеток</div>
+    </div>
+    <button class="adj" onclick="adj(1)">+</button>
+  </div>
+  <div class="sl-wrap">
+    <input type="range" id="sl" min="1" max="20" value="3" oninput="onSlide(this)">
+  </div>
+</div>
+
+<button class="btn-play" id="playBtn" onclick="generate()">⚡ PLAY</button>
+<div class="status" id="status">Выберите количество бомб и нажмите PLAY</div>
+
+<div class="card">
+  <div class="gtop">
+    <span class="glbl" id="lblField">Поле 5×5</span>
+    <span class="badge" id="badge">Ожидание</span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="result" id="result">
+    <div class="rrow"><span class="rk" id="lblSafe">⭐ Безопасных</span><span class="rv green" id="rSafe">—</span></div>
+    <div class="rrow"><span class="rk" id="lblBombResult">💣 Бомб</span><span class="rv" id="rBombs">—</span></div>
+    <div class="rrow"><span class="rk" id="lblMult">💰 Множитель</span><span class="rv gold" id="rMult">—</span></div>
+  </div>
+  <div class="tip" id="tip"></div>
+</div>
+
+<div class="footer">© UZBONUS · Powered by Signal AI</div>
+
+<script>
+// ── i18n ──────────────────────────────────────────────────────────
+const I18N = {
+  ru: {
+    remaining: '📊 Осталось сигналов',
+    limitT:    '❌ Лимит исчерпан',
+    limitS:    'Обновление в 00:00 · Пригласите друзей для бонусов',
+    bombs:     '💣 Количество бомб',
+    binfo:     '💣 бомб<br>из <b>25</b> клеток',
+    field:     'Поле 5×5',
+    waiting:   'Ожидание',
+    generating:'⏳ Генерация...',
+    analyzing: 'Анализирую поле...',
+    ready:     '✅ Готово',
+    initial:   'Выберите количество бомб и нажмите PLAY',
+    limitDone: 'Лимит исчерпан — приходите завтра',
+    safe:      '⭐ Безопасных',
+    bombR:     '💣 Бомб',
+    mult:      '💰 Множитель',
+    open:      '⭐ Открывайте клетки:',
+  },
+  uz: {
+    remaining: "📊 Qolgan signallar",
+    limitT:    "❌ Limit tugadi",
+    limitS:    "Yangilanish 00:00 da · Bonus uchun do'st taklif qiling",
+    bombs:     "💣 Bombalar soni",
+    binfo:     "💣 bomba<br>25 katakdan",
+    field:     "5×5 maydoni",
+    waiting:   "Kutilmoqda",
+    generating:"⏳ Generatsiya...",
+    analyzing: "Maydon tahlil qilinmoqda...",
+    ready:     "✅ Tayyor",
+    initial:   "Bombalar sonini tanlang va PLAY ni bosing",
+    limitDone: "Limit tugadi — ertaga keling",
+    safe:      "⭐ Xavfsiz",
+    bombR:     "💣 Bombalar",
+    mult:      "💰 Multiplikator",
+    open:      "⭐ Quyidagi kataklarni oching:",
+  }
+};
+
+// Parse URL params
+const params = new URLSearchParams(window.location.search);
+let remaining = parseInt(params.get('remaining') || '15');
+const userId  = params.get('uid')  || 'unknown';
+const langArg = (params.get('lang') || 'ru').toLowerCase();
+const L = I18N[langArg] || I18N.ru;
+
+// Apply translations on load
+function applyLang() {
+  document.getElementById('lblRemaining').textContent = L.remaining;
+  document.getElementById('lblLimitT').textContent   = L.limitT;
+  document.getElementById('lblLimitS').textContent   = L.limitS;
+  document.getElementById('lblBombs').textContent    = L.bombs;
+  document.getElementById('lblBinfo').innerHTML      = L.binfo;
+  document.getElementById('lblField').textContent    = L.field;
+  document.getElementById('badge').textContent       = L.waiting;
+  document.getElementById('status').textContent      = L.initial;
+  document.getElementById('lblSafe').textContent     = L.safe;
+  document.getElementById('lblBombResult').textContent = L.bombR;
+  document.getElementById('lblMult').textContent     = L.mult;
+}
+
+// Telegram WebApp init
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+let bombs = 3;
+
+function updateCounter() {
+  const c = document.getElementById('counter');
+  document.getElementById('remaining').textContent = remaining;
+  if (remaining <= 0) {
+    c.classList.add('zero');
+    document.getElementById('noLimit').classList.add('show');
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('status').textContent = L.limitDone;
+  } else {
+    c.classList.remove('zero');
+    document.getElementById('noLimit').classList.remove('show');
+    document.getElementById('playBtn').disabled = false;
+  }
+}
+
+function initGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  for (let i = 1; i <= 25; i++) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.id = 'c' + i;
+    g.appendChild(c);
+  }
+}
+
+function adj(d) { bombs = Math.max(1, Math.min(20, bombs + d)); sync(); }
+function onSlide(e) { bombs = +e.value; sync(); }
+function sync() {
+  document.getElementById('bNum').textContent = bombs;
+  document.getElementById('sl').value = bombs;
+  document.getElementById('sl').style.setProperty('--p', ((bombs - 1) / 19 * 100).toFixed(1) + '%');
+}
+
+function shuffle(a) {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function generate() {
+  if (remaining <= 0) return;
+
+  const pb = document.getElementById('playBtn');
+  pb.disabled = true;
+
+  const badge = document.getElementById('badge');
+  badge.className = 'badge';
+  badge.textContent = L.generating;
+
+  const status = document.getElementById('status');
+  status.className = 'status blink';
+  status.textContent = L.analyzing;
+
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('tip').classList.remove('show');
+
+  initGrid();
+  await sleep(500);
+
+  const all = Array.from({length: 25}, (_, i) => i + 1);
+  const bombSet = new Set(shuffle(all).slice(0, bombs));
+  const safeCells = all.filter(x => !bombSet.has(x));
+  const mult = (1 + (bombs / 25) * (1.5 + Math.random() * 3)).toFixed(2);
+
+  if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+  const order = shuffle(all);
+  for (let i = 0; i < order.length; i++) {
+    const n = order[i];
+    const el = document.getElementById('c' + n);
+    if (bombSet.has(n)) {
+      el.textContent = '💣';
+      el.classList.add('bomb');
+    } else {
+      el.textContent = '⭐';
+      el.classList.add('safe');
+    }
+    await sleep(50);
+  }
+
+  await sleep(200);
+
+  const rec = safeCells.slice(0, 5);
+  document.getElementById('rSafe').textContent = rec.map(n => '#' + n).join(', ');
+  document.getElementById('rBombs').textContent = bombs;
+  document.getElementById('rMult').textContent = '×' + mult;
+  document.getElementById('result').classList.add('show');
+
+  const tip = document.getElementById('tip');
+  tip.innerHTML = L.open + ' <b>' + rec.map(n => '#' + n).join(', ') + '</b>';
+  tip.classList.add('show');
+
+  badge.className = 'badge done';
+  badge.textContent = L.ready;
+  status.className = 'status';
+  status.textContent = '';
+
+  // Decrement & report to bot
+  remaining--;
+  updateCounter();
+
+  if (tg?.sendData) {
+    try {
+      tg.sendData(JSON.stringify({action: 'play', bombs: bombs}));
+    } catch (e) { console.warn('sendData failed:', e); }
+  }
+
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+  if (remaining > 0) document.getElementById('playBtn').disabled = false;
+}
+
+// Init
+applyLang();
+initGrid();
+sync();
+updateCounter();
+</script>
+</body>
+</html>
