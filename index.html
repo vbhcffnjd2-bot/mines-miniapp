@@ -362,8 +362,10 @@ async function generate() {
 
   if (tg?.sendData) {
     try {
-      tg.sendData(JSON.stringify({action: 'play', bombs: bombs}));
-    } catch (e) { console.warn('sendData failed:', e); }
+      tg.sendData(JSON.stringify({ action: 'play' }));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
