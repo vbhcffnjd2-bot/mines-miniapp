@@ -228,7 +228,7 @@ const I18N = {
 
 // Parse URL params
 const params = new URLSearchParams(window.location.search);
-let remaining = parseInt(params.get('remaining') || '15');
+let remaining = parseInt(params.get('remaining') || '0');
 const userId  = params.get('uid')  || 'unknown';
 const langArg = (params.get('lang') || 'ru').toLowerCase();
 const L = I18N[langArg] || I18N.ru;
@@ -257,7 +257,7 @@ let bombs = 3;
 function updateCounter() {
   const c = document.getElementById('counter');
   document.getElementById('remaining').textContent = remaining;
-  if (remaining <= 0) {
+  if (remaining < 0 || (remaining === 0 && document.getElementById('badge').textContent !== L.ready)) {
     c.classList.add('zero');
     document.getElementById('noLimit').classList.add('show');
     document.getElementById('playBtn').disabled = true;
@@ -265,7 +265,6 @@ function updateCounter() {
   } else {
     c.classList.remove('zero');
     document.getElementById('noLimit').classList.remove('show');
-    document.getElementById('playBtn').disabled = false;
   }
 }
 
@@ -280,8 +279,8 @@ function initGrid() {
   }
 }
 
-function adj(d) { bombs = Math.max(1, Math.min(20, bombs + d)); sync(); }
-function onSlide(e) { bombs = +e.value; sync(); }
+function adj(d) { if(document.getElementById('playBtn').disabled) return; bombs = Math.max(1, Math.min(20, bombs + d)); sync(); }
+function onSlide(e) { if(document.getElementById('playBtn').disabled) return; bombs = +e.value; sync(); }
 function sync() {
   document.getElementById('bNum').textContent = bombs;
   document.getElementById('sl').value = bombs;
@@ -299,8 +298,6 @@ function shuffle(a) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function generate() {
-  if (remaining <= 0) return;
-
   const pb = document.getElementById('playBtn');
   pb.disabled = true;
 
@@ -356,21 +353,12 @@ async function generate() {
   status.className = 'status';
   status.textContent = '';
 
-  // Decrement & report to bot
-  remaining--;
-  updateCounter();
-
-  if (tg?.sendData) {
-    try {
-      tg.sendData(JSON.stringify({ action: 'play' }));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-  if (remaining > 0) document.getElementById('playBtn').disabled = false;
+  // БОЛЬШЕ НЕ ЗАКРЫВАЕМ ПРИЛОЖЕНИЕ! 
+  // Просто блокируем кнопку и просим запросить новый сигнал в боте
+  pb.disabled = true;
+  pb.textContent = langArg === 'uz' ? '🤖 YANGI SIGNAL BOTDA' : '🤖 НОВЫЙ СИГНАЛ В БОТЕ';
 }
 
 // Init
